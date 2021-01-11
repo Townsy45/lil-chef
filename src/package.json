@@ -1,0 +1,14 @@
+{
+  "name": "lil-chef",
+  "version": "1.0.0",
+  "description": "A Discord bot for the WOK coding challenge Jan 2021",
+  "main": "bot.js",
+  "author": "Townsy",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
+    "mustang-log": "^1.1.2",
+    "pg": "^8.5.1"
+  }
+}

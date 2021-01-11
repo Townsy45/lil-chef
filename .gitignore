@@ -1,1 +1,5 @@
 .idea/
+src/node_modules
+src/config/data-conf.json
+src/.env
+src/commands/development
