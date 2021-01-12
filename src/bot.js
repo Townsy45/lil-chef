@@ -5,6 +5,7 @@
 
 const pg = require('./lib/pg');
 const utils = require('./lib/utils.js');
+const API = require('./lib/utils/food-api');
 
 (async () => {
   // Create the bot instance
@@ -15,4 +16,6 @@ const utils = require('./lib/utils.js');
   await utils.core.loadCommands(bot);
   // Connect to the database
   await pg.connect();
+  // Connect to the Food API
+  await API.connect();
 })();

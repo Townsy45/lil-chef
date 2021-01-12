@@ -21,6 +21,7 @@ const core = {
     const bot = new Discord.Client(); // Create the bot instance
     bot.commands = new Discord.Collection(); // Create a commands collection
     bot.aliases = new Discord.Collection(); // Create an events collection
+    bot.prefix = new Discord.Collection(); // Create a prefix cache collection
     await bot.login(process.env.TOKEN); // Login the bot
     return bot;
   },
