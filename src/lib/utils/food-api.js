@@ -41,17 +41,18 @@ async function check(recipeID) {
   return !!(check && check.idnr);
 }
 
-// TODO : This doesnt work, figure out why!
 async function add(recipeID, data) {
   // Check if the params are sent
   if (!recipeID || !data) throw 'All Params must be sent!';
   // Check if the database already contains this recipe
-  const c = await check;
+  const c = await check(recipeID);
   if (!c) {
-    // Add to the database
-    const add = await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ('${recipeID}', '${data}')`);
-    console.log('ADD', add)
-    return add;
+    try {
+      // Add to the database
+      return await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ('${recipeID}', '${JSON.stringify(data)}')`);
+    } catch (err) {
+      return log.error('Error adding new recipe to database!', err.message || err);
+    }
   }
 }
 
