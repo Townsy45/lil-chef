@@ -24,7 +24,6 @@ const user = {
     if (!uID || !rID) throw 'Invalid Params Sent';
     // Check if favourite already exists
     const fav = await pg.query(`SELECT idnr FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`);
-    console.log('FAV', fav);
     if (!fav) {
       // Try to insert into the favourites table
       return await pg.query(`INSERT INTO chef.favourites (user_id, recipeID) VALUES ('${uID}', '${rID}')`)
@@ -44,7 +43,6 @@ const user = {
   async getFavourites(uID, offset = 0, limit = 5) {
     // Check user id is sent
     if (!uID) throw 'A user id MUST be supplied!';
-    console.log('GETTING FAVS', uID, offset, limit)
     // Get the favourites from the offset
     const favs = await pg.query(`SELECT chef.get_favourites($1)`, [{ user_id: uID, offset, limit }], { parseOutput: true });
     if (favs && favs.status === 'pass') {
