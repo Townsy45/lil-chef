@@ -7,11 +7,73 @@ const log = require('./utils/log');
 
 // Normal Util functions
 const x = {
+  // TODO : Update this to work with chef database when guild stuff is added
   async checkGuildConfig(guild, prefix) {
     let guildConfig = await pg.query(`SELECT * FROM dev.config WHERE guildid = '${guild}'`);
     if (!guildConfig) await pg.query(`INSERT INTO dev.config (guildid${prefix ? ', prefix' : ''}) VALUES ('${guild}'${prefix ? `, '${prefix}'` : ''})`);
+  },
+  sanitize(input) {
+    input.replace(/[']/g, "''");
+    return input;
   }
 };
+
+const user = {
+  async favAdd(uID, rID) {
+    // Check id is sent
+    if (!uID || !rID) throw 'Invalid Params Sent';
+    // Check if favourite already exists
+    const fav = await pg.query(`SELECT idnr FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`);
+    console.log('FAV', fav);
+    if (!fav) {
+      // Try to insert into the favourites table
+      return await pg.query(`INSERT INTO chef.favourites (user_id, recipeID) VALUES ('${uID}', '${rID}')`)
+    }
+  },
+  async favRemove(uID, rID) {
+    // Check id is sent
+    if (!uID || !rID) throw 'Invalid Params Sent';
+    // Check if favourite already exists
+    const fav = await pg.query(`SELECT idnr FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`);
+    if (fav && fav.idnr) {
+      // Try to insert into the favourites table
+      return await pg.query(`DELETE FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`)
+
+    }
+  },
+  async getFavourites(uID, offset = 0, limit = 5) {
+    // Check user id is sent
+    if (!uID) throw 'A user id MUST be supplied!';
+    console.log('GETTING FAVS', uID, offset, limit)
+    // Get the favourites from the offset
+    const favs = await pg.query(`SELECT chef.get_favourites($1)`, [{ user_id: uID, offset, limit }], { parseOutput: true });
+    if (favs && favs.status === 'pass') {
+      const totalFavs = await pg.query(`SELECT COUNT(idnr) FROM chef.favourites WHERE user_id = $1`, [uID]);
+      return {
+        recipes: favs.data.recipes,
+        totalFavourites: totalFavs.count
+      };
+    }
+  }
+};
+
+const recipe = {
+  async isFavourite(uID, rID) {
+    // Check params are sent
+    if (!uID || !rID) throw 'Invalid Params Sent';
+    // Check if recipe exists as a favourite
+    const r = await pg.query(`SELECT idnr FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`);
+    return !!(r && r.idnr);
+  },
+  async timesViewed(rID) {
+    // Check id is sent
+    if (!rID) throw 'Recipe ID is needed!';
+    // Get the data
+    const r = await pg.query(`SELECT times_viewed as views FROM chef.recipes WHERE recipeID = '${rID}'`);
+    // Check if views exists
+    if (r && r.views) return r.views;
+  }
+}
 
 // Core system functions
 const core = {
@@ -80,4 +142,4 @@ const core = {
 
 };
 
-module.exports = { x, core, log };
+module.exports = { x, recipe, user, core, log };

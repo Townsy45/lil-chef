@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const log = require('../../lib/utils/log');
+const utils = require('../../lib/utils');
 const API = require('../../lib/utils/food-api');
 const moment = require("moment");
 const momentDurationFormatSetup = require("moment-duration-format");
@@ -64,7 +65,7 @@ module.exports.help = {
   category: 'Fun'
 };
 
-async function openRecipe(m, recipes, index, fav) {
+async function openRecipe(m, recipes, index) {
   // Check all the params are sent
   if (!m || !recipes || !index || index < 1) throw 'Please provide all valid params to open a recipe!';
   // The recipe
@@ -73,11 +74,14 @@ async function openRecipe(m, recipes, index, fav) {
   // API Calls
   await API.view(recipeID); // View the recipe if it exists
   await API.add(recipeID, recipe) // Add recipe to DB if not already in (defaults 1 view)
+  // Check if the recipe is a favourite
+  const fav = await utils.recipe.isFavourite(searcher.id, recipeID);
+  const timesViewed = await utils.recipe.timesViewed(recipeID);
   // Total time
   const totalTime = recipe.totalTime > 0 ? moment.duration(recipe.totalTime, "minutes").format("h [hrs], m [min]") : 'N/A';
   // Create the recipe embed
   const embed = new Discord.MessageEmbed()
-    .setAuthor(`${fav ? '⭐ ' : ''}${recipe.label}`)
+    .setAuthor(`${fav ? '⭐ ' : ''}${recipe.label}${timesViewed ? ` - ${timesViewed} Views` : ''}`)
     .setDescription(`**Total Time** ${totalTime} • **Serves** ${Math.round(recipe.yield)}
     **Calories:** ${round(recipe.calories)}`)
     .setImage(recipe.image)
@@ -88,6 +92,10 @@ async function openRecipe(m, recipes, index, fav) {
   await m.channel.send(`<@${searcher.id}> here is what I found!`, {embed})
     .then(async m => {
       let filterEmojis = [];
+
+
+      // TODO : Updated these reactions to be like in !saved because then they dont have to add each time and its cleaner
+
 
       // Go to start
       if (recipes.length > 1 && index > 1) { await m.react('⏪'); filterEmojis.push('⏪') }
@@ -108,7 +116,7 @@ async function openRecipe(m, recipes, index, fav) {
 
       // Collect the reaction
       const filter = (r, u) => filterEmojis.includes(r.emoji.name) && u.id === searcher.id;
-      m.awaitReactions(filter, { time: 20000, max: 1 })
+      m.awaitReactions(filter, { time: 60000, max: 1 })
         .then(async reaction => {
           // If reaction fails then remove all
           if (!reaction || !reaction.first() || !reaction.size) return m.reactions.removeAll();
@@ -124,38 +132,34 @@ async function openRecipe(m, recipes, index, fav) {
               const pageDown = (index - 1) < 1 ? 1 : index - 1;
               return openRecipe(m, recipes, pageDown);
             case '❓':
-              // Get recipe from DB
-              const data = await API.get(recipeID);
-              console.log('DATA', data)
-              if (data) console.log(data.times_viewed)
-              const timesViewed = data && data.times_viewed ? `**Times Viewed** \`${data.times_viewed}\`` : '';
+              // TODO : Have this link to the !recipe command to return all the info on that recipe and allow them to rate it from this page
               // Give link to source
               const info = new Discord.MessageEmbed()
                 .setAuthor(recipe.label)
                 .setThumbnail(recipe.image)
-                .setDescription(`Read more about this recipe from ${recipe.source} [here](${recipe.url})!
-                ${timesViewed}`)
+                .setDescription(`Read more about this recipe from ${recipe.source} [here](${recipe.url})!\n
+                **Recipe ID** \`${recipeID}\`
+                ${timesViewed ? `**Views** ${timesViewed}` : ''}`)
                 .setColor('RANDOM');
               await m.reactions.removeAll();
               return m.edit('', { embed: info });
             case '❤':
               // Repeat and add to user favourites
-
-
-              // TODO : Add favourites to DB in user table
-
-
-              console.log('ADDING TO FAVS');
+              await utils.user.favAdd(searcher.id, recipeID);
               await m.delete();
-              return openRecipe(m, recipes, index, true);
+              return openRecipe(m, recipes, index);
             case '💔':
               // Repeat and remove from favourites
-              console.log('DELETING FROM FAVS');
+              await utils.user.favRemove(searcher.id, recipeID);
               await m.delete();
               return openRecipe(m, recipes, index);
             case '❌':
               // Close the menu
-              return m.delete();
+              const close = new Discord.MessageEmbed()
+                .setDescription(`☑ **Recipe search has been closed**`)
+                .setColor('GREEN');
+              await m.reactions.removeAll();
+              return m.edit('', { embed: close });
             case '▶':
               // Switch page up
               await m.delete();
