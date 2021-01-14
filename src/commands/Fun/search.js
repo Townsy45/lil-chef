@@ -38,24 +38,21 @@ module.exports.run = async (bot, message, args) => {
         .setColor('GREEN');
       await searchMSG.edit({embed: resultEmbed});
       searchMSG.delete({timeout: 10000});
+      // Open the recipe menu
+      return openRecipe(message, results, 1);
     } else {
       // No results found, return a message letting the user know
       const resultEmbed = new Discord.MessageEmbed()
         .setDescription(`:x: **0** Results Found!`)
         .setColor('RED');
-      await searchMSG.edit({embed: resultEmbed});
+      return searchMSG.edit({embed: resultEmbed});
     }
   } catch (err) {
-    console.log('ERR', err);
+    await log.error('Error caught in search.js', err.message || err);
     // An error occurred
     await searchMSG.delete();
     return message.reply(`Sorry I was unable to complete your search please try again!\nIf the problem persists please report it to the development server! \`${bot.prefix[message.guild.id]}support\``);
   }
-
-  // Open the recipe menu
-  await openRecipe(message, results, 1);
-
-  return 'done';
 };
 
 module.exports.help = {
@@ -68,6 +65,8 @@ module.exports.help = {
 async function openRecipe(m, recipes, index) {
   // Check all the params are sent
   if (!m || !recipes || !index || index < 1) throw 'Please provide all valid params to open a recipe!';
+  // Check recipe length
+  if (typeof recipes !== 'object' || !recipes.length) return 'No recipes to open';
   // The recipe
   const recipe = recipes[index - 1].recipe;
   const recipeID = recipe.uri.split('#')[1];
