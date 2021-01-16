@@ -37,9 +37,8 @@ module.exports.run = async (bot, message, args) => {
         .setDescription(`☑ Found **${results.length}** results`)
         .setColor('GREEN');
       await searchMSG.edit({embed: resultEmbed});
-      searchMSG.delete({timeout: 10000});
       // Open the recipe menu
-      return openRecipe(message, results, 1);
+      return openRecipe(searchMSG, results, 1);
     } else {
       // No results found, return a message letting the user know
       const resultEmbed = new Discord.MessageEmbed()
@@ -88,94 +87,94 @@ async function openRecipe(m, recipes, index) {
     .addField('Labels', recipe.healthLabels.join('\n'), true)
     .setFooter(`${recipe.source} • Recipe (${index}/${recipes.length})`);
   // Send the recipe embed
-  await m.channel.send(`<@${searcher.id}> here is what I found!`, {embed})
-    .then(async m => {
-      let filterEmojis = [];
+  await m.edit(`<@${searcher.id}> here is what I found!`, {embed})
 
+  // Emojis to filter on
+  let filterEmojis = ['⏪', '◀', '❓', '⭐', '❌', '▶', '⏩'];
+  // Get reactions cache
+  const r = m.reactions.cache;
+  // Go to start
+  if (!await r.get('⏪')) await m.react('⏪');
+  // Back a Page
+  if (!await r.get('◀')) await m.react('◀');
+  // Visit source
+  if (!await r.get('❓')) await m.react('❓');
+  // Favourite / Un-favourite
+  if (!await r.get('⭐')) await m.react('⭐');
+  // Close recipes
+  if (!await r.get('❌')) await m.react('❌');
+  // Forward a Page
+  if (!await r.get('▶')) await m.react('▶');
+  // Go to end
+  if (!await r.get('⏩')) await m.react('⏩');
 
-      // TODO : Updated these reactions to be like in !saved because then they dont have to add each time and its cleaner
-
-
-      // Go to start
-      if (recipes.length > 1 && index > 1) { await m.react('⏪'); filterEmojis.push('⏪') }
-      // Back a Page
-      if (recipes.length > 1 && index > 1) { await m.react('◀'); filterEmojis.push('◀') }
-      // Visit source
-      await m.react('❓'); filterEmojis.push('❓');
-      // Favourite
-      if (!fav) { await m.react('❤'); filterEmojis.push('❤') }
-      // Un-favourite
-      else { await m.react('💔'); filterEmojis.push('💔') }
-      // Close recipes
-      await m.react('❌'); filterEmojis.push('❌');
-      // Forward a Page
-      if (recipes.length > 1 && index < recipes.length) { await m.react('▶'); filterEmojis.push('▶') }
-      // Go to end
-      if (recipes.length > 1 && index < recipes.length) { await m.react('⏩'); filterEmojis.push('⏩') }
-
-      // Collect the reaction
-      const filter = (r, u) => filterEmojis.includes(r.emoji.name) && u.id === searcher.id;
-      m.awaitReactions(filter, { time: 60000, max: 1 })
-        .then(async reaction => {
-          // If reaction fails then remove all
-          if (!reaction || !reaction.first() || !reaction.size) return m.reactions.removeAll();
-          // Choose what to do based on reaction
-          switch (reaction.first()._emoji.name) {
-            case '⏪':
-              // Go to first recipe
-              await m.delete();
-              return openRecipe(m, recipes, 1);
-            case '◀':
-              // Switch page down
-              await m.delete();
-              const pageDown = (index - 1) < 1 ? 1 : index - 1;
-              return openRecipe(m, recipes, pageDown);
-            case '❓':
-              // TODO : Have this link to the !recipe command to return all the info on that recipe and allow them to rate it from this page
-              // Give link to source
-              const info = new Discord.MessageEmbed()
-                .setAuthor(recipe.label)
-                .setThumbnail(recipe.image)
-                .setDescription(`Read more about this recipe from ${recipe.source} [here](${recipe.url})!\n
+  // Collect the reaction
+  const filter = (r, u) => filterEmojis.includes(r.emoji.name) && u.id === searcher.id;
+  m.awaitReactions(filter, {time: 60000, max: 1})
+    .then(async reaction => {
+      // If reaction fails then remove all
+      if (!reaction || !reaction.first() || !reaction.size) return m.reactions.removeAll();
+      // Choose what to do based on reaction
+      switch (reaction.first()._emoji.name) {
+        case '⏪':
+          // Remove user reaction
+          await m.reactions.cache.get('⏪').users.remove(searcher.id);
+          // Go to first recipe
+          return openRecipe(m, recipes, 1);
+        case '◀':
+          // Remove user reaction
+          await m.reactions.cache.get('◀').users.remove(searcher.id);
+          // Switch page down
+          const pageDown = (index - 1) < 1 ? recipes.length : index - 1;
+          return openRecipe(m, recipes, pageDown);
+        case '❓':
+          // TODO : Have this link to the !recipe command to return all the info on that recipe and allow them to rate it from this page
+          // Give link to source
+          const info = new Discord.MessageEmbed()
+            .setAuthor(recipe.label)
+            .setThumbnail(recipe.image)
+            .setDescription(`Read more about this recipe from ${recipe.source} [here](${recipe.url})!\n
                 **Recipe ID** \`${recipeID}\`
                 ${timesViewed ? `**Views** ${timesViewed}` : ''}`)
-                .setColor('RANDOM');
-              await m.reactions.removeAll();
-              return m.edit('', { embed: info });
-            case '❤':
-              // Repeat and add to user favourites
-              await utils.user.favAdd(searcher.id, recipeID);
-              await m.delete();
-              return openRecipe(m, recipes, index);
-            case '💔':
-              // Repeat and remove from favourites
-              await utils.user.favRemove(searcher.id, recipeID);
-              await m.delete();
-              return openRecipe(m, recipes, index);
-            case '❌':
-              // Close the menu
-              const close = new Discord.MessageEmbed()
-                .setDescription(`☑ **Recipe search has been closed**`)
-                .setColor('GREEN');
-              await m.reactions.removeAll();
-              return m.edit('', { embed: close });
-            case '▶':
-              // Switch page up
-              await m.delete();
-              const pageUp = (index + 1) > recipes.length ? recipes.length : index + 1;
-              return openRecipe(m, recipes, pageUp);
-            case '⏩':
-              // Go to last recipe
-              await m.delete();
-              return openRecipe(m, recipes, recipes.length);
+            .setColor('RANDOM');
+          await m.reactions.removeAll();
+          return m.edit('', {embed: info});
+        case '⭐':
+          // Remove user reaction
+          await m.reactions.cache.get('⭐').users.remove(searcher.id);
+          if (fav) {
+            // Repeat and remove from favourites
+            await utils.user.favRemove(searcher.id, recipeID)
+          } else {
+            // Repeat and add to user favourites
+            await utils.user.favAdd(searcher.id, recipeID);
           }
-        })
-        .catch(err => {
-          log.error('Caught error in search.js', err);
-          m.reactions.removeAll();
-        });
-
+          return openRecipe(m, recipes, index);
+        case '❌':
+          // Close the menu
+          const close = new Discord.MessageEmbed()
+            .setDescription(`☑ **Recipe search has been closed**`)
+            .setColor('GREEN');
+          await m.reactions.removeAll();
+          return m.edit('', {embed: close});
+        case '▶':
+          // Remove user reaction
+          await m.reactions.cache.get('▶').users.remove(searcher.id);
+          // Switch page up
+          const pageUp = (index + 1) > recipes.length ? 1 : index + 1;
+          return openRecipe(m, recipes, pageUp);
+        case '⏩':
+          // Remove user reaction
+          await m.reactions.cache.get('⏩').users.remove(searcher.id);
+          // Go to last recipe
+          return openRecipe(m, recipes, recipes.length);
+      }
+    })
+    .catch(err => {
+      log.error('Caught error in search.js', err);
+      m.reactions.removeAll();
     });
+
 }
 
 function round(n) {

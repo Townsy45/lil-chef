@@ -76,6 +76,7 @@ async function loadFavourites(member, message, page) {
     favString += favString.length < 1 ? '' : '\n ';
     favString += `**[${recipe.data.label}](${recipe.data.url})** (${recipe.times_viewed || 0} views)
       • Recipe from [${recipe.data.source}](${recipe.data.url})
+      • Date Added \`${recipe.date_added}\`
       • Recipe ID \`${recipe.recipeid}\`\n`;
   }
 
@@ -98,7 +99,7 @@ async function loadFavourites(member, message, page) {
 
   // Collect the reaction
   const filter = (r, u) => filterEmojis.includes(r.emoji.name) && u.id === searcher.id;
-  message.awaitReactions(filter, { time: 10000, max: 1 })
+  message.awaitReactions(filter, { time: 60000, max: 1 })
     .then(async reaction => {
       // If reaction fails then remove all
       if (!reaction || !reaction.first() || !reaction.size) return closedEmbed(message);
@@ -108,7 +109,7 @@ async function loadFavourites(member, message, page) {
           // Remove user reaction
           await message.reactions.cache.get('◀').users.remove(searcher.id);
           // Switch page down
-          const pageDown = (page - 1) < 1 ? 1 : page - 1;
+          const pageDown = (page - 1) < 1 ? maxPage : page - 1;
           // Load last page
           return loadFavourites(member, message, pageDown)
         case '❌':
