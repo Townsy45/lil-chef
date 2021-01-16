@@ -1,5 +1,6 @@
 const pg = require('../pg');
 const log = require('./log');
+const utils = require('../utils');
 const axios = require('axios');
 const API_ID = process.env.FOODAPI_ID;
 const API_KEY = process.env.FOODAPI_KEY;
@@ -26,10 +27,9 @@ async function search(query) {
   // Check they sent something
   if (!query) return 'Please send a search query!';
   // If query exists then attempt to search
-  let results = await axios.get('https://api.edamam.com/search', { params: { q: query, app_id: API_ID, app_key: API_KEY, to: 15 } })
-    .catch(err => { console.log(err) });
+  let results = await axios.get('https://api.edamam.com/search', { params: { q: query, app_id: API_ID, app_key: API_KEY, to: 20 } })
+    .catch(err => { log.error('Error searching the API', err.message || err) });
   results = results.data || results;
-  console.log('RESULTS', results)
   // If results are received then pass them
   if (results && results.hits.length) return results.hits;
   // If not then return an error
@@ -49,7 +49,7 @@ async function add(recipeID, data) {
   if (!c) {
     try {
       // Add to the database
-      return await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ('${recipeID}', '${JSON.stringify(data)}')`);
+      return await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ($1, $2)`, [recipeID, JSON.stringify(data)]);
     } catch (err) {
       return log.error('Error adding new recipe to database!', err.message || err);
     }
@@ -63,7 +63,7 @@ async function update(recipeID, field, data) {
   const c = await check;
   if (c) {
     // Found in database
-    return await pg.query(`UPDATE chef.recipes SET ${field} = '${data}' WHERE recipeID = '${recipeID}'`)
+    return await pg.query(`UPDATE chef.recipes SET $1 = $2 WHERE recipeID = $3`, [field, data, recipeID])
   }
 }
 
@@ -71,7 +71,7 @@ async function view(recipeID) {
   // Check recipeID is sent
   if (!recipeID) throw 'Invalid Recipe ID!';
   // Add a view to the recipe
-  return await pg.query(`UPDATE chef.recipes SET times_viewed = times_viewed + 1 WHERE recipeID = '${recipeID}' RETURNING times_viewed`)
+  return await pg.query(`UPDATE chef.recipes SET times_viewed = times_viewed + 1 WHERE recipeID = $1 RETURNING times_viewed`, [recipeID])
 }
 
 module.exports = { connect, get, search, check, add, update, view };

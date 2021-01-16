@@ -21,13 +21,20 @@ async function connect() {
   });
 }
 
-function query(sql) {
+function query(sql, queryParams, options) {
   return new Promise (async (resolve, reject) => {
     // Run the pg query
-    p.query(sql, (err, res) => {
+    p.query(sql, queryParams, (err, res) => {
       if (err) reject(err);
-      if (res && res.rowCount > 1) resolve(res.rows);
-      resolve(res && res.rows ? res.rows[0] : res);
+      if (options && options.parseOutput) {
+        let firstKey = Object.keys(res.rows[0])[0];
+        let parsed = JSON.parse(res.rows[0][firstKey]);
+        if (parsed.err) reject(parsed.err)
+        else resolve(parsed);
+      } else {
+        if (res && res.rowCount > 1) resolve(res.rows);
+        resolve(res && res.rows ? res.rows[0] : res);
+      }
     });
   })
 }
