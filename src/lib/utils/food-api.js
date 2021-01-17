@@ -18,9 +18,7 @@ async function get(recipeID) {
   // Check if a recipe ID is sent
   if (!recipeID) throw 'Invalid Recipe ID!';
   // Get the recipe information
-  const information = await pg.query(`SELECT * FROM chef.recipes WHERE recipeID = '${recipeID}'`);
-  console.log('INFO', information);
-  return information;
+  return await pg.query(`SELECT * FROM chef.recipes WHERE recipeID = '${recipeID}'`);
 }
 
 async function search(query) {
@@ -41,19 +39,22 @@ async function check(recipeID) {
   return !!(check && check.idnr);
 }
 
-async function add(recipeID, data) {
+async function add(data) {
   // Check if the params are sent
-  if (!recipeID || !data) throw 'All Params must be sent!';
+  if (!data) throw 'Data must be sent to save!';
+  // Generate the ID
+  const recipeID = data.uri.split('#')[1].substring(8, 16);
   // Check if the database already contains this recipe
   const c = await check(recipeID);
   if (!c) {
     try {
       // Add to the database
-      return await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ($1, $2)`, [recipeID, JSON.stringify(data)]);
+      await pg.query(`INSERT INTO chef.recipes (recipeID, data) VALUES ($1, $2)`, [recipeID, JSON.stringify(data)]);
     } catch (err) {
       return log.error('Error adding new recipe to database!', err.message || err);
     }
   }
+  return recipeID;
 }
 
 async function update(recipeID, field, data) {
