@@ -1,6 +1,9 @@
 require("dotenv").config(); // For the environment variables
 const Discord = require("discord.js"); // Discord.js for the bot
 const fs = require('fs');
+const moment = require("moment");
+const momentDurationFormatSetup = require("moment-duration-format");
+momentDurationFormatSetup(moment);
 const { join } = require('path');
 const pg = require('./pg');
 const log = require('./utils/log');
@@ -70,6 +73,20 @@ const recipe = {
     const r = await pg.query(`SELECT times_viewed as views FROM chef.recipes WHERE recipeID = '${rID}'`);
     // Check if views exists
     if (r && r.views) return r.views;
+  },
+  async dataEmbed(r) {
+    const views = await recipe.timesViewed(r.recipeid);
+    // Total time
+    const totalTime = r.totalTime > 0 ? moment.duration(r.totalTime, "minutes").format("h [hrs], m [min]") : 'N/A';
+    // Return the embed
+    return new Discord.MessageEmbed()
+      .setAuthor(`${r.favourite ? '⭐ ' : ''}${r.label}${views ? ` - ${views} Views` : ''}`)
+      .setDescription(`**Total Time** ${totalTime} • **Serves** ${Math.round(r.yield)}
+    **Calories:** ${parseFloat(r.calories).toFixed(2)}`)
+      .setImage(r.image)
+      .addField(`Ingredients (${r.ingredientLines.length})`, '• ' + r.ingredientLines.join('\n• '), true)
+      .addField('Labels', r.healthLabels.join('\n'), true)
+      .setFooter(`${r.source} • Recipe (${r.page || '1/1'}) • ID: ${r.recipeid}`);
   }
 }
 

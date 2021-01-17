@@ -68,24 +68,18 @@ async function openRecipe(m, recipes, index) {
   if (typeof recipes !== 'object' || !recipes.length) return 'No recipes to open';
   // The recipe
   const recipe = recipes[index - 1].recipe;
-  const recipeID = recipe.uri.split('#')[1];
+  // Add recipe to DB if not already in (defaults 1 view)
+  const recipeID = await API.add(recipe);
   // API Calls
   await API.view(recipeID); // View the recipe if it exists
-  await API.add(recipeID, recipe) // Add recipe to DB if not already in (defaults 1 view)
   // Check if the recipe is a favourite
   const fav = await utils.recipe.isFavourite(searcher.id, recipeID);
-  const timesViewed = await utils.recipe.timesViewed(recipeID);
-  // Total time
-  const totalTime = recipe.totalTime > 0 ? moment.duration(recipe.totalTime, "minutes").format("h [hrs], m [min]") : 'N/A';
+
+  // Assign props to pass to embed function
+  recipe.recipeid = recipeID; recipe.favourite = fav;
+  recipe.page = `${index}/${recipes.length}`;
   // Create the recipe embed
-  const embed = new Discord.MessageEmbed()
-    .setAuthor(`${fav ? '⭐ ' : ''}${recipe.label}${timesViewed ? ` - ${timesViewed} Views` : ''}`)
-    .setDescription(`**Total Time** ${totalTime} • **Serves** ${Math.round(recipe.yield)}
-    **Calories:** ${round(recipe.calories)}`)
-    .setImage(recipe.image)
-    .addField(`Ingredients (${recipe.ingredientLines.length})`, '• ' + recipe.ingredientLines.join('\n• '), true)
-    .addField('Labels', recipe.healthLabels.join('\n'), true)
-    .setFooter(`${recipe.source} • Recipe (${index}/${recipes.length})`);
+  const embed = await utils.recipe.dataEmbed(recipe);
   // Send the recipe embed
   await m.edit(`<@${searcher.id}> here is what I found!`, {embed})
 
@@ -129,6 +123,7 @@ async function openRecipe(m, recipes, index) {
           return openRecipe(m, recipes, pageDown);
         case '❓':
           // TODO : Have this link to the !recipe command to return all the info on that recipe and allow them to rate it from this page
+          const timesViewed = await utils.recipe.timesViewed(recipeID);
           // Give link to source
           const info = new Discord.MessageEmbed()
             .setAuthor(recipe.label)
@@ -175,8 +170,4 @@ async function openRecipe(m, recipes, index) {
       m.reactions.removeAll();
     });
 
-}
-
-function round(n) {
-  return parseFloat(n).toFixed(2);
 }

@@ -70,7 +70,7 @@ async function loadFavourites(member, message, page) {
   // Build the info string for each recipe
   let favString = '';
   // Define the max page number
-  const maxPage = Math.round(favourites.totalFavourites / 5);
+  const maxPage = Math.round(favourites.totalFavourites / 5) < 1 ? 1 : Math.round(favourites.totalFavourites / 5);
   // Loop through each recipe and build a string for the embed
   for (const recipe of favourites.recipes) {
     favString += favString.length < 1 ? '' : '\n ';
