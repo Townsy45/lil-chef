@@ -12,7 +12,7 @@ module.exports.run = async (bot, message, args) => {
 
   /*
       Saved Favourites Command
-        Usage: !saved <id>
+        Usage: !saved <remove> <id>
         Returns: List of saved recipes
   */
 
@@ -20,6 +20,24 @@ module.exports.run = async (bot, message, args) => {
   const member = message.mentions.members.first() || message.guild.members.cache.get(args[0]) || message.member;
   // Assign the searcher for pagination
   searcher = message.author;
+
+  // Handle remove favourite
+  if (args[0] && args[0].toLowerCase() === 'remove') {
+    // Check if the id is sent
+    if (!args[1]) return message.reply('Please specify the ID to remove!');
+    // Remove from the favourites
+    const del = await utils.user.favRemove(searcher.id, args[1]);
+    // Return a message to the user
+    const embedRemove = new Discord.MessageEmbed()
+      .setDescription('☑ Removed recipe from your favourites!')
+      .setColor('GREEN');
+    // If a message is returned then it errored
+    if (del) {
+      embedRemove.setDescription('❌ Unable to remove, ' + del)
+      embedRemove.setColor('RED');
+    }
+    return message.channel.send({ embed: embedRemove })
+  }
 
   // Send the loading embed
   const loadEmbed = new Discord.MessageEmbed()
@@ -60,7 +78,7 @@ async function loadFavourites(member, message, page) {
     // No recipes found
     const u = searcher.id === member.id ? 'You have' : member.displayName + ' has';
     // Have a chance to send a tip so it is not every time
-    const tip = Math.floor(Math.random() * 10) > 6 ? `\nTip: *React with ❤ to save recipes from searches.*` : '';
+    const tip = Math.floor(Math.random() * 10) > 6 ? `\nTip: *React with ⭐ to save recipes from searches.*` : '';
     // Send the no recipe response
     const noRecipes = new Discord.MessageEmbed()
       .setDescription(`**${u} no saved recipes!**${tip}`)
@@ -70,7 +88,7 @@ async function loadFavourites(member, message, page) {
   // Build the info string for each recipe
   let favString = '';
   // Define the max page number
-  const maxPage = Math.round(favourites.totalFavourites / 5) < 1 ? 1 : Math.round(favourites.totalFavourites / 5);
+  const maxPage = Math.ceil(favourites.totalFavourites / 5) < 1 ? 1 : Math.ceil(favourites.totalFavourites / 5);
   // Loop through each recipe and build a string for the embed
   for (const recipe of favourites.recipes) {
     favString += favString.length < 1 ? '' : '\n ';
@@ -119,7 +137,7 @@ async function loadFavourites(member, message, page) {
           // Remove user reaction
           await message.reactions.cache.get('▶').users.remove(searcher.id);
           // Switch page up
-          const pageUp = (page + 1) > maxPage ? maxPage : page + 1;
+          const pageUp = (page + 1) > maxPage ? 1 : page + 1;
           // Load next page
           return loadFavourites(member, message, pageUp)
       }

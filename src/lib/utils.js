@@ -35,13 +35,10 @@ const user = {
   async favRemove(uID, rID) {
     // Check id is sent
     if (!uID || !rID) throw 'Invalid Params Sent';
-    // Check if favourite already exists
-    const fav = await pg.query(`SELECT idnr FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`);
-    if (fav && fav.idnr) {
-      // Try to insert into the favourites table
-      return await pg.query(`DELETE FROM chef.favourites WHERE user_id = '${uID}' AND recipeID = '${rID}'`)
-
-    }
+    // Use the sql function to remove favourites
+    const res = await pg.query('SELECT chef.remove_favourite($1)', [{ recipe_id: rID, user_id: uID }], { parseOutput: true })
+    // Return the error message if it errors
+    if (res.status !== 'pass') return res.message || 'an unknown error occurred';
   },
   async getFavourites(uID, offset = 0, limit = 5) {
     // Check user id is sent
