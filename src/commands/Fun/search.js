@@ -139,7 +139,7 @@ async function openRecipe(m, recipes, index) {
           await m.reactions.cache.get('⭐').users.remove(searcher.id);
           if (fav) {
             // Repeat and remove from favourites
-            await utils.user.favRemove(searcher.id, recipeID)
+            await utils.user.favRemove(searcher.id, recipeID);
           } else {
             // Repeat and add to user favourites
             await utils.user.favAdd(searcher.id, recipeID);
