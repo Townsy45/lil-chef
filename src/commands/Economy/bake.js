@@ -6,7 +6,7 @@ const _ = require('lodash');
 
 let user; // So I can access the author in the many functions below
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = async (client, message, args) => {
 
   /*
         Bake cookies
@@ -30,13 +30,12 @@ module.exports.run = async (bot, message, args) => {
     .setFooter(`${cookies} Cookies in total`)
 
   await message.channel.send(bakingEmbed);
-  const ev = await utils.user.event(user.id, 'bake', 'You baked 1 cookie');
-  console.log('EV', ev);
+  await utils.user.event(user.id, 'bake', 'You baked 1 cookie');
 };
 
 module.exports.help = {
   name: 'bake',
-  description: 'Bake cookies to trade and use',
+  description: 'Bake cookies to trade and use.',
   aliases: ['cook'],
   category: 'Economy'
 };

@@ -34,7 +34,8 @@ module.exports.run = async (client, message, args) => {
 
 module.exports.help = {
   name: "prefix",
-  description: "View and set the prefix of the guild",
+  description: "View and set the prefix of the guild.",
   aliases: [],
-  category: "Config",
+  category: "Utility",
+  usage: "prefix [new prefix]"
 };

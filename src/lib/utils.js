@@ -215,6 +215,14 @@ const cookies = {
     const cookies = await pg.query('UPDATE chef.users SET cookies = cookies + 1, last_bake = to_timestamp($1 / 1000.0) WHERE user_id = $2 RETURNING cookies', [Date.now(), uID], { parseOutput: true })
     // Return cookies the user has
     if (cookies) return cookies;
+  },
+  async add(uID, amount) {
+    // Check params are sent
+    if (!uID || !amount || isNaN(amount)) throw 'Invalid params (cookies.add)';
+  },
+  async remove(uID, amount) {
+    // Check params are sent
+    if (!uID || !amount || isNaN(amount)) throw 'Invalid params (cookies.remove)';
   }
 }
 
@@ -225,6 +233,7 @@ const core = {
   async createBot() {
     const bot = new Discord.Client(); // Create the bot instance
     bot.commands = new Discord.Collection(); // Create a commands collection
+    bot.categories = new Discord.Collection(); // Create a commands categories collection
     bot.aliases = new Discord.Collection(); // Create an events collection
     bot.prefix = new Discord.Collection(); // Create a prefix cache collection
     await bot.login(process.env.TOKEN); // Login the bot
@@ -254,33 +263,40 @@ const core = {
   async loadCommands(bot) {
     const commandDir = join(__dirname, '..', 'commands');
 
-    let files = await this.getAllFiles(commandDir);
+    let commands = await this.getAllFiles(commandDir);
 
-    if (files) {
-      for (const f of files) {
+    // Set the categories
+    if (commands && commands.categories) bot.categories = commands.categories;
+
+    // Set the commands and aliases
+    if (commands && commands.files) {
+      for (const f of commands.files) {
         let props = require(f);
         bot.commands.set(props.help.name, props);
         if (props.help.aliases && Array.isArray(props.help.aliases))
           for (const alias of props.help.aliases)
             bot.aliases.set(alias, props.help.name);
       }
-      await log.info(`Loaded ${files.length} commands!`)
+      await log.info(`Loaded ${bot.commands.size} commands!`)
     } else {
       await log.warn('No Commands Found!');
     }
   },
 
   // Get all files recursively
-  async getAllFiles(dirPath, arrayOfFiles = []) {
+  async getAllFiles(dirPath, arrayOfFiles = [], arrayOfCategories = []) {
     const files = fs.readdirSync(dirPath);
 
     for (const file of files) {
-      if (fs.statSync(dirPath + "/" + file).isDirectory())
-        arrayOfFiles = await this.getAllFiles(dirPath + "/" + file, arrayOfFiles);
-      else arrayOfFiles.push(join(dirPath, "/", file));
+      if (fs.statSync(dirPath + "/" + file).isDirectory()) {
+        arrayOfCategories.push(file);
+        await this.getAllFiles(dirPath + "/" + file, arrayOfFiles, arrayOfCategories);
+      } else {
+        arrayOfFiles.push(join(dirPath, "/", file));
+      }
     }
 
-    return arrayOfFiles;
+    return { files: arrayOfFiles, categories: arrayOfCategories };
   },
 
 };

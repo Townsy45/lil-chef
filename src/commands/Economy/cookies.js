@@ -7,16 +7,16 @@ const moment = require("moment");
 
 let user; // So I can access the author in the many functions below
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = async (client, message, args) => {
 
   /*
         Show your cookies
-          Usage: !cookies
+          Usage: !cookies @user
           Returns: Details on cookies
     */
 
   // Assign the searcher for pagination
-  user = message.mentions.users.first() || bot.users.cache.get(args[0]) || message.author;
+  user = message.mentions.users.first() || client.users.cache.get(args[0]) || message.author;
 
   const searchingEmbed = new Discord.MessageEmbed()
     .setDescription(`<a:loading:722563785109274707> Loading!`)
@@ -48,9 +48,10 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: 'cookies',
-  description: 'Show your cookies and recent events',
+  description: 'Show your cookies and recent events.',
   aliases: ['balance', 'bal', 'jar'],
-  category: 'Economy'
+  category: 'Economy',
+  usage: "cookies [@user | UserID]"
 };
 
 async function error(m, e) {

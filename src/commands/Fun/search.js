@@ -8,7 +8,7 @@ momentDurationFormatSetup(moment);
 
 let searcher; // So I can access the author in the many functions below
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = async (client, message, args) => {
 
   /*
       Search Command
@@ -50,15 +50,16 @@ module.exports.run = async (bot, message, args) => {
     await log.error('Error caught in search.js', err.message || err);
     // An error occurred
     await searchMSG.delete();
-    return message.reply(`Sorry I was unable to complete your search please try again!\nIf the problem persists please report it to the development server! \`${bot.prefix[message.guild.id]}support\``);
+    return message.reply(`Sorry I was unable to complete your search please try again!\nIf the problem persists please report it to the development server! \`${client.prefix[message.guild.id]}support\``);
   }
 };
 
 module.exports.help = {
   name: 'search',
-  description: 'Search for recipes',
+  description: 'Search for recipes based on keywords.',
   aliases: ['find'],
-  category: 'Fun'
+  category: 'Fun',
+  usage: "search <keywords>"
 };
 
 async function openRecipe(m, recipes, index) {

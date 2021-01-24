@@ -6,7 +6,7 @@ const _ = require('lodash');
 
 let searcher; // So I can access the author in the many functions below
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = async (client, message, args) => {
 
   /*
       Find a recipe command
@@ -51,9 +51,10 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: 'recipe',
-  description: 'Find a specific recipe by ID',
+  description: 'Find a specific recipe by ID.',
   aliases: ['info'],
-  category: 'Fun'
+  category: 'Fun',
+  usage: "recipe <id>"
 };
 
 async function error(m, e) {

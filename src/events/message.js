@@ -5,7 +5,6 @@ module.exports = async (client, message) => {
   if (message.author.bot || message.channel.type === "dm") return;
   // Sorts prefix
   let prefix = await utils.x.getGuildPrefix(client, message.guild.id);
-  console.log('PREFIX', prefix)
   // If user just tags the bot it returns the prefix
   if (message.content.startsWith(`<@!${client.user.id}>`))
     return client.commands.get('prefix').run(client, message, []);

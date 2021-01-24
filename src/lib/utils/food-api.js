@@ -7,10 +7,9 @@ const API_KEY = process.env.FOODAPI_KEY;
 
 async function connect() {
   // Attempt to connect to the api.
-  // TODO : Uncomment this when going live so it doesnt ping in dev and waste limit on api
-  // const res = await axios.get('https://api.edamam.com/search', { params: { app_id: API_ID, app_key: API_KEY } }).catch(err => { console.log(err.message) })
-  const res = true;
-  if (res) await log.info('API Connected Successfully!');
+  const res = await axios.get('https://api.edamam.com/search', { params: { app_id: API_ID, app_key: API_KEY } })
+    .catch(err => { log.error('Caught error in api get!', err.message || err) })
+  if (res && res.status === 200) await log.info('API Connected Successfully!');
   else await log.error('Unable To Reach The Food API!');
 }
 

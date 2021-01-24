@@ -8,7 +8,7 @@ momentDurationFormatSetup(moment);
 
 let searcher; // So I can access the author in the many functions below
 
-module.exports.run = async (bot, message, args) => {
+module.exports.run = async (client, message, args) => {
 
   /*
       Saved Favourites Command
@@ -63,9 +63,10 @@ module.exports.run = async (bot, message, args) => {
 
 module.exports.help = {
   name: 'saved',
-  description: 'Show your saved recipes',
+  description: 'Show or remove your saved recipes.',
   aliases: ['favourites', 'fav'],
-  category: 'Fun'
+  category: 'Fun',
+  usage: "saved [remove] [id]"
 };
 
 async function loadFavourites(member, message, page) {
