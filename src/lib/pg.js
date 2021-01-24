@@ -26,7 +26,7 @@ function query(sql, queryParams, options) {
     // Run the pg query
     p.query(sql, queryParams, (err, res) => {
       if (err) reject(err);
-      if (options && options.parseOutput) {
+      if (options && options.parseOutput && res.rows.length) {
         let firstKey = Object.keys(res.rows[0])[0];
         let parsed = JSON.parse(res.rows[0][firstKey]);
         if (parsed.err) reject(parsed.err)
