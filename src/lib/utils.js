@@ -10,10 +10,78 @@ const log = require('./utils/log');
 
 // Normal Util functions
 const x = {
-  // TODO : Update this to work with chef database when guild stuff is added
-  async checkGuildConfig(guild, prefix) {
-    let guildConfig = await pg.query(`SELECT * FROM dev.config WHERE guildid = '${guild}'`);
-    if (!guildConfig) await pg.query(`INSERT INTO dev.config (guildid${prefix ? ', prefix' : ''}) VALUES ('${guild}'${prefix ? `, '${prefix}'` : ''})`);
+  async getGuildPrefix(client, guild) {
+    // Check params
+    if (!client || !guild) return;
+    // Check if cache exists
+    if (!client.prefixes) client.prefixes = new Discord.Collection();
+    // Get prefix from cache
+    let prefix = client.prefixes.get(guild);
+    // Check cache if there is a prefix already saved
+    if (prefix) return prefix;
+    // Check if guild is in database
+    await this.checkGuildConfig(client, guild);
+    // Prefix not found in cache so update the cache with the database
+    const db = await pg.query(`SELECT prefix FROM chef.guilds WHERE guild_id = '${guild}'`);
+    // Check if database returned a prefix or not
+    if (db.prefix) prefix = db.prefix;
+    // Check if the database returned nothing, return default prefix
+    if (!prefix) prefix = process.env.DEFAULT_PREFIX;
+    // Update the cache
+    client.prefixes.set(guild, prefix);
+    // Return the prefix
+    return prefix;
+  },
+
+  async setGuildPrefix(client, guild, prefix) {
+    // Check params
+    if (!client || !guild || !prefix) throw 'Invalid params sent!';
+    // Cache check exists
+    if (!client.prefixes) client.prefixes = new Discord.Collection();
+    // Define prefix from cache or default
+    const cache = client.prefixes.get(guild);
+    let sysPrefix = cache || process.env.DEFAULT_PREFIX;
+    // If cache doesnt exist fetch from the database
+    if (!cache) {
+      await this.checkGuildConfig(client, guild);
+      let DB = await pg.query(`SELECT prefix FROM chef.guilds WHERE guild_id = $1`, [guild]); // Fetches the prefix from database
+      if (DB) sysPrefix = DB.prefix; // Set the db prefix if it exists
+    }
+    // Check if the prefix is the same
+    if (sysPrefix === prefix) throw 'Prefix is the same as the current!';
+    // Update cache and database
+    client.prefixes.set(guild, prefix);
+    await pg.query(`UPDATE chef.guilds SET prefix = $1 WHERE guild_id = $2`, [prefix, guild]);
+  },
+
+  async checkGuildConfig(client, guild) {
+    // Check params
+    if (!client || !guild) throw 'client and guild must be sent (x.checkGuildConfig)';
+    // Check config cache exists
+    if (!client.config) client.config = new Discord.Collection();
+    // Check if guild is in the config cache
+    if (!client.config.get(guild)) {
+      let DB = await pg.query(`SELECT guild_id FROM chef.guilds WHERE guild_id = $1`, [guild]);
+      if (DB) client.config.set(guild, true); // Add the guild to the cache
+    }
+    // Return if the guild is in the cache
+    if (client.config.get(guild)) return;
+    // Insert the guild into the config database
+    await pg.query(`INSERT INTO chef.guilds (guild_id) VALUES ($1)`, [guild]);
+    client.config.set(guild, true); // Add it to the cache
+  },
+  async getPointsLeaderboard() {
+    // TODO - Add cache that updates every 1 minute or so possibly.
+    // Get leaderboard data from database
+    return await pg.query(`SELECT ROW_NUMBER () OVER (ORDER BY points DESC) as position, userid as id, points, correct, incorrect FROM wokmas.stats LIMIT 10;`);
+  },
+
+  async getPointsPosition(user) {
+    // Check user is sent
+    if (!user) return;
+    // Get the users position in the leaderboard
+    let data = await pg.query(`SELECT * FROM (SELECT userid, ROW_NUMBER () OVER (ORDER BY points DESC) as position FROM wokmas.stats) x WHERE userid = '${user}';`);
+    if (data && data.position) return data.position;
   },
   sanitize(input) {
     input.replace(/[']/g, "''");
@@ -22,6 +90,28 @@ const x = {
 };
 
 const user = {
+  async get(uID) {
+    // Error is no user id is sent
+    if (!uID) throw 'Invalid User ID (user.get)';
+    // Check user exists
+    const user = await this.checkExists(uID);
+    // Not found try to add
+    if (!user) await this.add(uID);
+    // Return user
+    const data = await pg.query('SELECT * FROM chef.users WHERE user_id = $1', [uID]);
+    let events = await pg.query('SELECT * FROM chef.events WHERE user_id = $1 LIMIT 10', [uID]);
+    if (events && events.idnr) events = [events]; // If there is only 1 event then make it an array
+    return { data, events };
+  },
+  async add(uID) {
+    // Check user id is sent, needed for creation
+    if (!uID) throw 'User ID is required (user.add)';
+    // Check if user exists
+    if (!await this.checkExists(uID)) {
+      // User is not found add user
+      await pg.query('INSERT INTO chef.users (user_id) VALUES ($1)', [uID]);
+    }
+  },
   async favAdd(uID, rID) {
     // Check id is sent
     if (!uID || !rID) throw 'Invalid Params Sent';
@@ -52,6 +142,19 @@ const user = {
         totalFavourites: totalFavs.count
       };
     }
+  },
+  async checkExists(uID) {
+    // Check user id is sent
+    if (!uID) throw 'Invalid User ID Sent';
+    // Check user exists
+    const u = await pg.query(`SELECT user_id FROM chef.users WHERE user_id = $1`, [uID], { parseOutput: true });
+    return !!u;
+  },
+  async event(uID, type, detail) {
+    // Check params are sent
+    if (!uID || !type || !detail) throw 'Not all params are valid (user.event)';
+    // Insert into the event table and return the event
+    return await pg.query('INSERT INTO chef.events (user_id, event_type, details) VALUES ($1, $2, $3) RETURNING *', [uID, type, detail]);
   }
 };
 
@@ -84,6 +187,34 @@ const recipe = {
       .addField(`Ingredients (${r.ingredientLines.length})`, '• ' + r.ingredientLines.join('\n• '), true)
       .addField('Labels', r.healthLabels.join('\n'), true)
       .setFooter(`${r.source} • Recipe (${r.page || '1/1'}) • ID: ${r.recipeid}`);
+  }
+}
+
+const cookies = {
+  async cooldown(uID) {
+    // Check user id is sent
+    if (!uID) throw 'User ID must be sent (cookies.cooldown)';
+    // Get user from DB
+    const u = await user.get(uID);
+    // Compare diff in date timestamps
+    if (!u.data || !u.data.last_bake) return false;
+    // Calculate time left
+    const breakTime = 600000; // 10 min in MS
+    const now = Date.now(); // Current time in MS
+    const last = new Date(u.data.last_bake).getTime(); // Last time in MS
+    const diff = breakTime - (now - last); // Should be the difference in MS
+    // If diff expires format a cooldown remaining
+    if (diff > 0) return moment.duration(diff, 'ms').format('h [hours,] m [minutes,] s [seconds]');
+    // Defaults false
+    return false;
+  },
+  async bake(uID) {
+    // Check user id is sent
+    if (!uID) throw 'User id is need to update (cookies.bake)'
+    // Update user settings
+    const cookies = await pg.query('UPDATE chef.users SET cookies = cookies + 1, last_bake = to_timestamp($1 / 1000.0) WHERE user_id = $2 RETURNING cookies', [Date.now(), uID], { parseOutput: true })
+    // Return cookies the user has
+    if (cookies) return cookies;
   }
 }
 
@@ -154,4 +285,4 @@ const core = {
 
 };
 
-module.exports = { x, recipe, user, core, log };
+module.exports = { x, recipe, cookies, user, core, log };
