@@ -68,16 +68,15 @@ const x = {
     await pg.query(`INSERT INTO chef.guilds (guild_id) VALUES ($1)`, [guild]);
     client.config.set(guild, true); // Add it to the cache
   },
-  async getPointsLeaderboard() {
-    // TODO - Add cache that updates every 1 minute or so possibly.
+  async getCookiesLeaderboard() {
     // Get leaderboard data from database
-    return await pg.query(`SELECT ROW_NUMBER () OVER (ORDER BY points DESC) as position, userid as id, points, correct, incorrect FROM wokmas.stats LIMIT 10;`);
+    return await pg.query(`SELECT ROW_NUMBER () OVER (ORDER BY cookies DESC) as position, user_id as id, cookies FROM chef.users LIMIT 10;`);
   },
-  async getPointsPosition(user) {
+  async getCookiesPosition(uID) {
     // Check user is sent
-    if (!user) return;
+    if (!uID) throw 'User must be sent (x.getCookiesPosition)';
     // Get the users position in the leaderboard
-    let data = await pg.query(`SELECT * FROM (SELECT userid, ROW_NUMBER () OVER (ORDER BY points DESC) as position FROM wokmas.stats) x WHERE userid = '${user}';`);
+    let data = await pg.query(`SELECT * FROM (SELECT user_id, ROW_NUMBER () OVER (ORDER BY cookies DESC) as position FROM chef.users) x WHERE user_id = $1`, [uID]);
     if (data && data.position) return data.position;
   },
 };

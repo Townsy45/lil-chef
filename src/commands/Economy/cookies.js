@@ -21,11 +21,11 @@ module.exports.run = async (client, message, args) => {
   const searchingEmbed = new Discord.MessageEmbed()
     .setDescription(`<a:loading:722563785109274707> Loading!`)
     .setColor('YELLOW');
-
   const m = await message.channel.send(searchingEmbed);
 
   // Get the user data
   const u = await utils.user.get(user.id);
+  const position = await utils.x.getCookiesPosition(user.id);
   // Check if user is not sent
   if (!u || !u.data) return error(m, 'There was an error fetching your user data, please report this if it repeats');
   let transactions = '';
@@ -42,7 +42,8 @@ module.exports.run = async (client, message, args) => {
   }
   // Build embed
   const cookieEmbed = new Discord.MessageEmbed()
-    .setDescription(`**${user.id === message.author.id ? 'You have' : `${user} has`} [${u.data.cookies}](https://lilchef.xyz) cookies 🍪**\n\n${transactions}`)
+    .setDescription(`**${user.id === message.author.id ? 'You have' : `${user} has`} [${u.data.cookies}](https://lilchef.xyz) cookies 🍪**\n\n${transactions}
+    ${position ? `**Leaderboard Position:** [#${position}](https://lilchef.xyz)` : ''}`)
     .setColor('ORANGE');
   // Send the embed
   await m.edit(cookieEmbed);

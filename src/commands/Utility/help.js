@@ -33,6 +33,7 @@ module.exports.run = async (client, message, args) => {
   const help = new Discord.MessageEmbed()
     .setTitle('Lil Chef - Help Menu')
     .setDescription(`Current Guild Prefix: \`${guildPrefix}\``)
+    .setColor('RANDOM')
     .setFooter(`View more with ${guildPrefix}help [command name] • Use ${guildPrefix}support to join our support server.`);
 
   for (const cat of client.categories) {

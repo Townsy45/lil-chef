@@ -13,6 +13,7 @@
     "moment": "^2.29.1",
     "moment-duration-format": "^2.3.2",
     "mustang-log": "^1.1.2",
-    "pg": "^8.5.1"
+    "pg": "^8.5.1",
+    "string-table": "^0.1.5"
   }
 }
