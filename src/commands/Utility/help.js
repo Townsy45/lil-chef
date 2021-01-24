@@ -20,7 +20,7 @@ module.exports.run = async (client, message, args) => {
         .setTitle(`Lil Chef - ${cmd.help.name} command`)
         .setDescription(`\`\`\`css\n${cmd.help.description}\`\`\`
         **Usage:** \`${guildPrefix}${cmd.help.usage || cmd.help.name}\`
-        **Aliases:** \`${cmd.help.aliases.join('\\`\\n\\`') || 'None'}\`
+        **Aliases:** \`${cmd.help.aliases.join('\`, \`') || 'None'}\`
         **Category:** \`${cmd.help.category}\``)
         .setColor('RANDOM')
         .setFooter(`Use ${guildPrefix}support to join our support server.`);

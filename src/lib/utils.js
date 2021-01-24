@@ -32,7 +32,6 @@ const x = {
     // Return the prefix
     return prefix;
   },
-
   async setGuildPrefix(client, guild, prefix) {
     // Check params
     if (!client || !guild || !prefix) throw 'Invalid params sent!';
@@ -53,7 +52,6 @@ const x = {
     client.prefixes.set(guild, prefix);
     await pg.query(`UPDATE chef.guilds SET prefix = $1 WHERE guild_id = $2`, [prefix, guild]);
   },
-
   async checkGuildConfig(client, guild) {
     // Check params
     if (!client || !guild) throw 'client and guild must be sent (x.checkGuildConfig)';
@@ -75,7 +73,6 @@ const x = {
     // Get leaderboard data from database
     return await pg.query(`SELECT ROW_NUMBER () OVER (ORDER BY points DESC) as position, userid as id, points, correct, incorrect FROM wokmas.stats LIMIT 10;`);
   },
-
   async getPointsPosition(user) {
     // Check user is sent
     if (!user) return;
@@ -83,10 +80,6 @@ const x = {
     let data = await pg.query(`SELECT * FROM (SELECT userid, ROW_NUMBER () OVER (ORDER BY points DESC) as position FROM wokmas.stats) x WHERE userid = '${user}';`);
     if (data && data.position) return data.position;
   },
-  sanitize(input) {
-    input.replace(/[']/g, "''");
-    return input;
-  }
 };
 
 const user = {
@@ -99,7 +92,7 @@ const user = {
     if (!user) await this.add(uID);
     // Return user
     const data = await pg.query('SELECT * FROM chef.users WHERE user_id = $1', [uID]);
-    let events = await pg.query('SELECT * FROM chef.events WHERE user_id = $1 LIMIT 10', [uID]);
+    let events = await pg.query('SELECT * FROM chef.events WHERE user_id = $1 ORDER BY event_date DESC LIMIT 10', [uID]);
     if (events && events.idnr) events = [events]; // If there is only 1 event then make it an array
     return { data, events };
   },
@@ -219,11 +212,24 @@ const cookies = {
   async add(uID, amount) {
     // Check params are sent
     if (!uID || !amount || isNaN(amount)) throw 'Invalid params (cookies.add)';
+    // Check the user exists
+    const u = await user.checkExists(uID);
+    // Error if user doesnt exist
+    if (!u) throw 'User does not exist (cookies.add)';
+    // Update the user's cookies
+    await pg.query('UPDATE chef.users SET cookies = cookies + $1 WHERE user_id = $2', [amount, uID])
   },
   async remove(uID, amount) {
     // Check params are sent
     if (!uID || !amount || isNaN(amount)) throw 'Invalid params (cookies.remove)';
-  }
+    // Check the user exists
+    const u = await user.checkExists(uID);
+    // Error if user doesnt exist
+    if (!u) throw 'User does not exist (cookies.remove)';
+    // Update the user's cookies
+    await pg.query('UPDATE chef.users SET cookies = cookies - $1 WHERE user_id = $2', [amount, uID])
+  },
+
 }
 
 // Core system functions

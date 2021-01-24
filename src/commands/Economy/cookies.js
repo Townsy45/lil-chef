@@ -30,12 +30,14 @@ module.exports.run = async (client, message, args) => {
   if (!u || !u.data) return error(m, 'There was an error fetching your user data, please report this if it repeats');
   let transactions = '';
   if (u.events && u.events.length) {
+    let index = 1;
     for (const e of u.events) {
       // Get transactions of type bake, trade and use
       if (['bake', 'trade', 'use'].includes(e.event_type)) {
         const d = new Date(e.event_date);
-        transactions += `\`${e.details}\` - [${moment(d).format('hh:mm A[,] Do MMM YYYY')}](http://lilchef.xyz)\n`
+        transactions += `**${index}.** \`${e.details}\` - [${moment(d).format('hh:mm A[,] Do MMM YYYY')}](http://lilchef.xyz)\n`
       }
+      index++;
     }
   }
   // Build embed
