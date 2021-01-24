@@ -35,14 +35,14 @@ module.exports.run = async (client, message, args) => {
       // Get transactions of type bake, trade and use
       if (['bake', 'trade', 'use'].includes(e.event_type)) {
         const d = new Date(e.event_date);
-        transactions += `**${index}.** \`${e.details}\` - [${moment(d).format('hh:mm A[,] Do MMM YYYY')}](http://lilchef.xyz)\n`
+        transactions += `**${index}.** \`${e.details}\` - [${moment(d).format('hh:mm A[,] Do MMM YYYY')}](https://lilchef.xyz)\n`
       }
       index++;
     }
   }
   // Build embed
   const cookieEmbed = new Discord.MessageEmbed()
-    .setDescription(`**${user.id === message.author.id ? 'You have' : `${user} has`} [${u.data.cookies}](http://lilchef.xyz) cookies 🍪**\n\n${transactions}`)
+    .setDescription(`**${user.id === message.author.id ? 'You have' : `${user} has`} [${u.data.cookies}](https://lilchef.xyz) cookies 🍪**\n\n${transactions}`)
     .setColor('ORANGE');
   // Send the embed
   await m.edit(cookieEmbed);

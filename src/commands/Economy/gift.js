@@ -46,7 +46,7 @@ module.exports.run = async (client, message, args) => {
     await utils.user.event(message.author.id, 'trade', `You gifted ${user.username} ${amount} cookies!`);
     // Build embed
     const sendEmbed = new Discord.MessageEmbed()
-      .setDescription(`**You have gifted [${amount}](http://lilchef.xyz) cookies to ${user}** 🍪`)
+      .setDescription(`**You have gifted [${amount}](https://lilchef.xyz) cookies to ${user}** 🍪`)
       .setColor('GREEN');
     // Send the embed
     return m.edit(sendEmbed);
