@@ -176,8 +176,8 @@ const recipe = {
       .setDescription(`**Total Time** ${totalTime} • **Serves** ${Math.round(r.yield)}
     **Calories:** ${parseFloat(r.calories).toFixed(2)}`)
       .setImage(r.image)
-      .addField(`Ingredients (${r.ingredientLines.length})`, ('• ' + r.ingredientLines.join('\n• ')) || '', true)
-      .addField('Labels', r.healthLabels.join('\n') || '', true)
+      .addField(`Ingredients (${r.ingredientLines.length})`, ('• ' + r.ingredientLines.join('\n• ')) || '\`None\`', true)
+      .addField('Labels', r.healthLabels.join('\n') || '\`None\`', true)
       .setFooter(`${r.source} • Recipe (${r.page || '1/1'}) • ID: ${r.recipeid}`);
   }
 }
