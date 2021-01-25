@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 
 module.exports.run = async (client, message, args) => {
-  return message.channel.send(`${message.createdTimestamp - new Date()}ms - ${client.ws.ping}ms`);
+  return message.channel.send(`Client Latency \`${new Date() - message.createdTimestamp}ms\` - API Latency \`${client.ws.ping}ms\``);
 };
 
 module.exports.help = {
