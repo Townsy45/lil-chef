@@ -6,8 +6,6 @@ const moment = require("moment");
 const momentDurationFormatSetup = require("moment-duration-format");
 momentDurationFormatSetup(moment);
 
-let searcher; // So I can access the author in the many functions below
-
 module.exports.run = async (client, message, args) => {
 
   /*
@@ -20,7 +18,7 @@ module.exports.run = async (client, message, args) => {
   if (!args || !args.length) return message.reply('Please provide something to search!');
   const query = args.join(' ');
   let results = [];
-  searcher = message.author;
+  const searcher = message.author;
 
   // Send a searching message
   const searchEmbed = new Discord.MessageEmbed()
@@ -38,7 +36,7 @@ module.exports.run = async (client, message, args) => {
         .setColor('GREEN');
       await searchMSG.edit({embed: resultEmbed});
       // Open the recipe menu
-      return openRecipe(searchMSG, results, 1);
+      return openRecipe(searchMSG, searcher, results, 1);
     } else {
       // No results found, return a message letting the user know
       const resultEmbed = new Discord.MessageEmbed()
@@ -62,7 +60,7 @@ module.exports.help = {
   usage: "search <keywords>"
 };
 
-async function openRecipe(m, recipes, index) {
+async function openRecipe(m, searcher, recipes, index) {
   // Check all the params are sent
   if (!m || !recipes || !index || index < 1) throw 'Please provide all valid params to open a recipe!';
   // Check recipe length
@@ -86,6 +84,7 @@ async function openRecipe(m, recipes, index) {
 
   // Emojis to filter on
   let filterEmojis = ['⏪', '◀', '❓', '⭐', '❌', '▶', '⏩'];
+  // TODO - Make this look instead of if spam
   // Get reactions cache
   const r = m.reactions.cache;
   // Go to start
@@ -115,13 +114,13 @@ async function openRecipe(m, recipes, index) {
           // Remove user reaction
           await m.reactions.cache.get('⏪').users.remove(searcher.id);
           // Go to first recipe
-          return openRecipe(m, recipes, 1);
+          return openRecipe(m, searcher, recipes, 1);
         case '◀':
           // Remove user reaction
           await m.reactions.cache.get('◀').users.remove(searcher.id);
           // Switch page down
           const pageDown = (index - 1) < 1 ? recipes.length : index - 1;
-          return openRecipe(m, recipes, pageDown);
+          return openRecipe(m, searcher, recipes, pageDown);
         case '❓':
           // TODO : Have this link to the !recipe command to return all the info on that recipe and allow them to rate it from this page
           const timesViewed = await utils.recipe.timesViewed(recipeID);
@@ -145,7 +144,7 @@ async function openRecipe(m, recipes, index) {
             // Repeat and add to user favourites
             await utils.user.favAdd(searcher.id, recipeID);
           }
-          return openRecipe(m, recipes, index);
+          return openRecipe(m, searcher, recipes, index);
         case '❌':
           // Close the menu
           const close = new Discord.MessageEmbed()
@@ -158,12 +157,12 @@ async function openRecipe(m, recipes, index) {
           await m.reactions.cache.get('▶').users.remove(searcher.id);
           // Switch page up
           const pageUp = (index + 1) > recipes.length ? 1 : index + 1;
-          return openRecipe(m, recipes, pageUp);
+          return openRecipe(m, searcher, recipes, pageUp);
         case '⏩':
           // Remove user reaction
           await m.reactions.cache.get('⏩').users.remove(searcher.id);
           // Go to last recipe
-          return openRecipe(m, recipes, recipes.length);
+          return openRecipe(m, searcher, recipes, recipes.length);
       }
     })
     .catch(err => {
