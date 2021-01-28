@@ -19,7 +19,7 @@ module.exports.run = async (client, message, args) => {
   // Assign the searcher for pagination
   user = message.author;
   // Get the user's platform
-  let platform = Object.keys(user.presence.clientStatus)[0];
+  let platform = user.presence.clientStatus ? Object.keys(user.presence.clientStatus)[0] : 'mobile';
   // Check if the user specifies a platform
   if (args[0] && ['mobile', 'web', 'desktop'].includes(args[0].toLowerCase())) platform = args[0].toLowerCase();
   // Loading leaderboards message
